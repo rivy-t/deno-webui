@@ -11,6 +11,7 @@
 */
 
 import { existsSync } from 'https://deno.land/std/fs/mod.ts';
+import { dlopen } from 'https://deno.land/x/plug@1.0.2/mod.ts';
 
 export const version = '2.3.0';
 
@@ -115,7 +116,8 @@ function load_lib() {
 
 	// Load the library
 	// FFI
-	webui_lib = Deno.dlopen(
+	// webui_lib = Deno.dlopen(
+	webui_lib = dlopen(
 		lib_path,
 		{
 			webui_wait: {
