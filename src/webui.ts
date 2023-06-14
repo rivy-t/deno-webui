@@ -10,15 +10,15 @@
   Canada.
 */
 
-import { existsSync } from 'https://deno.land/std/fs/mod.ts';
+// import { existsSync } from 'https://deno.land/std/fs/mod.ts';
 import { dlopen } from 'https://deno.land/x/plug@1.0.2/mod.ts';
 
 export const version = '2.3.0';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-let lib_loaded = false;
-let webui_lib;
+// let lib_loaded = false;
+// let webui_lib;
 
 export const browser = {
 	AnyBrowser: 0, // 0. Default recommended web browser
@@ -61,35 +61,38 @@ if (Deno.build.os === 'windows') {
 // Full path to the library name
 let lib_path = './' + lib_name;
 
-// Check if a file exist
-function is_file_exist(path: string): boolean {
-	// TODO: existsSync() is deprecated
-	return existsSync(path);
-}
+const webui_lib = await load_lib(lib_name);
+console.log({ webui_lib });
+
+// // Check if a file exist
+// function is_file_exist(path: string): boolean {
+// 	// TODO: existsSync() is deprecated
+// 	return existsSync(path);
+// }
 
 // Convert String to C-String
 function string_to_uint8array(value: string): Uint8Array {
 	return encoder.encode(value + '\0');
 }
 
-// Get current folder path
-function get_current_module_path(): string {
-	const __dirname = new URL('.', import.meta.url).pathname;
-	// console.log({ meta_url: import.meta.url });
-	// console.log({ meta_resolve: import.meta.resolve('./x') });
-	// console.log({ meta_url_pathname: new URL('.', import.meta.url).pathname });
-	// console.log({ __dirname });
-	let directory = String(__dirname);
-	if (Deno.build.os === 'windows') {
-		// Remove '/'
-		let buf = directory.substring(1);
-		directory = buf;
-		// Replace '/' by '\'
-		buf = directory.replaceAll('/', os_sep);
-		directory = buf;
-	}
-	return directory;
-}
+// // Get current folder path
+// function get_current_module_path(): string {
+// 	const __dirname = new URL('.', import.meta.url).pathname;
+// 	// console.log({ meta_url: import.meta.url });
+// 	// console.log({ meta_resolve: import.meta.resolve('./x') });
+// 	// console.log({ meta_url_pathname: new URL('.', import.meta.url).pathname });
+// 	// console.log({ __dirname });
+// 	let directory = String(__dirname);
+// 	if (Deno.build.os === 'windows') {
+// 		// Remove '/'
+// 		let buf = directory.substring(1);
+// 		directory = buf;
+// 		// Replace '/' by '\'
+// 		buf = directory.replaceAll('/', os_sep);
+// 		directory = buf;
+// 	}
+// 	return directory;
+// }
 
 // Convert C-String to String
 function uint8array_to_string(value: ArrayBuffer): string {
@@ -97,16 +100,16 @@ function uint8array_to_string(value: ArrayBuffer): string {
 }
 
 // Load the library
-function load_lib() {
-	if (lib_loaded) {
-		return;
-	}
+async function load_lib(lib_name: string) {
+	// if (lib_loaded) {
+	// 	return webui_lib;
+	// }
 
 	// // Check if the library file exist
 	// if (!is_file_exist(lib_path)) {
 	// 	// let lib_path_cwd = get_current_module_path() + lib_name;
-	let lib_path_cwd = import.meta.resolve('./' + lib_name);
-	console.log({ lib_path_cwd });
+	const lib_path_cwd = import.meta.resolve('./' + lib_name);
+	console.log({ lib_name, lib_path_cwd });
 	// if (!is_file_exist(lib_path_cwd)) {
 	// 	console.log('WebUI Error: File not found (' + lib_path + ') or (' + lib_path_cwd + ')');
 	// 	Deno.exit(1);
@@ -117,7 +120,7 @@ function load_lib() {
 	// Load the library
 	// FFI
 	// webui_lib = Deno.dlopen(
-	webui_lib = dlopen(
+	const lib = await dlopen(
 		lib_path,
 		{
 			webui_wait: {
@@ -182,10 +185,10 @@ function load_lib() {
 			},
 		} as const,
 	);
-	console.log({ webui_lib });
 
-	// Make sure we don't load twice
-	lib_loaded = true;
+	// // Make sure we don't load twice
+	// lib_loaded = true;
+	return lib;
 }
 
 export function set_lib_path(path: string) {
@@ -193,27 +196,27 @@ export function set_lib_path(path: string) {
 }
 
 export function new_window(): Deno.usize {
-	load_lib();
+	// load_lib();
 	return webui_lib.symbols.webui_new_window();
 }
 
 export function show(win: Deno.usize, content: string): number {
-	load_lib();
+	// load_lib();
 	return webui_lib.symbols.webui_show(win, string_to_uint8array(content));
 }
 
 export function show_browser(win: Deno.usize, content: string, browser: number): number {
-	load_lib();
+	// load_lib();
 	return webui_lib.symbols.webui_show_browser(win, string_to_uint8array(content), browser);
 }
 
 export function exit() {
-	load_lib();
+	// load_lib();
 	webui_lib.symbols.webui_exit();
 }
 
 export function script(win: Deno.usize, js, script: string): boolean {
-	load_lib();
+	// load_lib();
 
 	// Response Buffer
 	const size: number = (js.BufferSize > 0 ? js.BufferSize : (1024 * 8));
@@ -235,7 +238,7 @@ export function script(win: Deno.usize, js, script: string): boolean {
 }
 
 export function run(win: Deno.usize, script: string): boolean {
-	load_lib();
+	// load_lib();
 
 	// Execute the script
 	const status = webui_lib.symbols.webui_run(win, string_to_uint8array(script));
@@ -244,7 +247,7 @@ export function run(win: Deno.usize, script: string): boolean {
 }
 
 export function bind(win: Deno.usize, element: string, func: Function) {
-	load_lib();
+	// load_lib();
 	const callbackResource = new Deno.UnsafeCallback(
 		{
 			// unsigned int webui_interface_bind(..., void (*func)(size_t, unsigned int, char*, char*, unsigned int))
@@ -294,7 +297,7 @@ export function bind(win: Deno.usize, element: string, func: Function) {
 // the Deno script main thread. Lets do it in another way for now.
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function wait() {
-	load_lib();
+	// await load_lib();
 	while (true) {
 		await sleep(10);
 		if (!webui_lib.symbols.webui_interface_is_app_running()) {
