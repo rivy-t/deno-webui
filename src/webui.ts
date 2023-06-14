@@ -182,6 +182,7 @@ function load_lib() {
 			},
 		} as const,
 	);
+	console.log({ webui_lib });
 
 	// Make sure we don't load twice
 	lib_loaded = true;
